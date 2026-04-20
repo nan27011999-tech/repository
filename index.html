@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINE Slip Bot — Admin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f4; --card: #ffffff; --border: #e5e5e3;
+    --text: #1c1c1a; --muted: #78716c; --primary: #0f6e56;
+    --success: #15803d; --danger: #b91c1c; --warning: #b45309;
+  }
+  body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  header { background: var(--primary); color: #fff; padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; }
+  header h1 { font-size: 1.2rem; font-weight: 600; }
+  .badge { background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; }
+  main { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; display: grid; gap: 1.5rem; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+  @media (max-width: 768px) { .grid-2, .grid-4 { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+  .card h2 { font-size: 0.85rem; color: var(--muted); font-weight: 500; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-value { font-size: 2rem; font-weight: 700; color: var(--text); }
+  .stat-label { font-size: 0.85rem; color: var(--muted); margin-top: 0.25rem; }
+  .stat-green { color: var(--success); }
+  .stat-orange { color: var(--warning); }
+  .upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--primary); background: #f0fdf4; }
+  .upload-zone input { display: none; }
+  .upload-zone .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  .upload-zone p { color: var(--muted); font-size: 0.9rem; }
+  .upload-zone strong { color: var(--primary); }
+  .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1.25rem; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; border: none; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .alert { padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.9rem; margin-top: 1rem; }
+  .alert-success { background: #f0fdf4; color: var(--success); border: 1px solid #bbf7d0; }
+  .alert-error { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 500; font-size: 0.8rem; }
+  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; }
+  .pill-green { background: #dcfce7; color: var(--success); }
+  .pill-red { background: #fee2e2; color: var(--danger); }
+  .pill-gray { background: #f5f5f4; color: var(--muted); }
+  .tab-bar { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+  .tab { padding: 0.5rem 1rem; cursor: pointer; border-bottom: 2px solid transparent; font-size: 0.9rem; color: var(--muted); }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+  #loading { display: none; color: var(--muted); font-size: 0.9rem; margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>📱</div>
+  <h1>LINE Slip Bot</h1>
+  <span class="badge">Admin Panel</span>
+  <button class="btn btn-outline" style="margin-left:auto;background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.3)" onclick="loadStats()">🔄 รีเฟรช</button>
+</header>
+
+<main>
+  <!-- Stats Cards -->
+  <div class="grid-4">
+    <div class="card">
+      <h2>จับคู่แล้ววันนี้</h2>
+      <div class="stat-value stat-green" id="today-matched">-</div>
+      <div class="stat-label" id="today-amount">รายการ</div>
+    </div>
+    <div class="card">
+      <h2>จับคู่แล้ว (ทั้งหมด)</h2>
+      <div class="stat-value stat-green" id="total-matched">-</div>
+      <div class="stat-label">รายการ</div>
+    </div>
+    <div class="card">
+      <h2>ยังไม่จับคู่</h2>
+      <div class="stat-value stat-orange" id="total-unmatched">-</div>
+      <div class="stat-label">รายการ</div>
+    </div>
+    <div class="card">
+      <h2>ยอดรวมที่จับคู่</h2>
+      <div class="stat-value" id="total-amount">-</div>
+      <div class="stat-label">บาท</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Upload -->
+    <div class="card">
+      <h2>📂 นำเข้าข้อมูลเดินบัญชี</h2>
+      <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+           ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+        <input type="file" id="file-input" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event)">
+        <div class="icon">📊</div>
+        <p><strong>คลิกเพื่อเลือกไฟล์</strong> หรือลากวางที่นี่</p>
+        <p>รองรับ .CSV, .XLSX, .XLS</p>
+      </div>
+      <div id="loading">⏳ กำลังนำเข้าข้อมูล...</div>
+      <div id="upload-result"></div>
+
+      <div style="margin-top:1rem;padding:1rem;background:#f5f5f4;border-radius:8px;font-size:0.82rem;color:var(--muted)">
+        <strong>คอลัมน์ที่รองรับ:</strong><br>
+        วันที่, รายการ/description, จำนวนเงิน/amount, ประเภท, เลขที่อ้างอิง/ref
+      </div>
+    </div>
+
+    <!-- Recent Slips -->
+    <div class="card">
+      <h2>📸 สลิปล่าสุด</h2>
+      <div class="tab-bar">
+        <div class="tab active" onclick="showTab('slips')">สลิปที่รับ</div>
+        <div class="tab" onclick="showTab('unmatched')">ยังไม่จับคู่</div>
+      </div>
+      <div id="tab-slips"><div id="slips-table">กำลังโหลด...</div></div>
+      <div id="tab-unmatched" style="display:none"><div id="unmatched-table">กำลังโหลด...</div></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const API_BASE = '';
+
+// Basic auth header (stored in sessionStorage)
+let authHeader = sessionStorage.getItem('auth') || '';
+if (!authHeader) {
+  const pw = prompt('รหัสผ่าน Admin:');
+  authHeader = 'Basic ' + btoa(':' + pw);
+  sessionStorage.setItem('auth', authHeader);
+}
+
+async function apiFetch(url, opts = {}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: { ...opts.headers, 'Authorization': authHeader },
+  });
+  if (res.status === 401 || res.status === 403) {
+    sessionStorage.removeItem('auth');
+    alert('รหัสผ่านไม่ถูกต้อง กรุณารีเฟรชหน้า');
+    return null;
+  }
+  return res;
+}
+
+async function loadStats() {
+  const res = await apiFetch('/admin/stats');
+  if (!res) return;
+  const data = await res.json();
+
+  document.getElementById('today-matched').textContent  = data.today.matched_count ?? 0;
+  document.getElementById('today-amount').textContent   = formatMoney(data.today.matched_amount) + ' บาท';
+  document.getElementById('total-matched').textContent  = data.stats.matched_count ?? 0;
+  document.getElementById('total-unmatched').textContent = data.stats.unmatched_count ?? 0;
+  document.getElementById('total-amount').textContent   = formatMoney(data.stats.matched_amount);
+
+  // Slips table
+  document.getElementById('slips-table').innerHTML = buildSlipsTable(data.recent);
+  document.getElementById('unmatched-table').innerHTML = buildUnmatchedTable(data.pending);
+}
+
+function buildSlipsTable(rows) {
+  if (!rows?.length) return '<p style="color:var(--muted);font-size:0.9rem">ยังไม่มีสลิป</p>';
+  return `<div style="overflow-x:auto"><table>
+    <thead><tr><th>เวลา</th><th>ธนาคาร</th><th>ยอด</th><th>สถานะ</th></tr></thead>
+    <tbody>${rows.map(r => `
+      <tr>
+        <td style="color:var(--muted)">${formatDate(r.created_at)}</td>
+        <td>${r.bank_name ?? '-'}</td>
+        <td>${formatMoney(r.amount)}</td>
+        <td>${statusPill(r.status)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+function buildUnmatchedTable(rows) {
+  if (!rows?.length) return '<p style="color:var(--muted);font-size:0.9rem;color:var(--success)">✅ ทุกรายการจับคู่แล้ว</p>';
+  return `<div style="overflow-x:auto"><table>
+    <thead><tr><th>วันที่</th><th>รายการ</th><th>ยอด</th></tr></thead>
+    <tbody>${rows.map(r => `
+      <tr>
+        <td style="color:var(--muted)">${r.date ?? '-'}</td>
+        <td>${r.description}</td>
+        <td>${formatMoney(r.amount)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+function statusPill(status) {
+  const map = { matched: ['pill-green','✅ จับคู่แล้ว'], pending: ['pill-gray','⏳ รอ'], unmatched: ['pill-red','❌ ไม่พบ'] };
+  const [cls, label] = map[status] ?? ['pill-gray', status];
+  return `<span class="pill ${cls}">${label}</span>`;
+}
+
+function formatMoney(n) { return (n ?? 0).toLocaleString('th-TH', { minimumFractionDigits: 2 }); }
+function formatDate(s) { if (!s) return '-'; const d = new Date(s); return `${d.getDate()}/${d.getMonth()+1} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+
+// Upload handlers
+async function uploadFile(file) {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('upload-result').innerHTML = '';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await apiFetch('/admin/upload', { method: 'POST', body: formData });
+  document.getElementById('loading').style.display = 'none';
+  if (!res) return;
+
+  const data = await res.json();
+  const isOk = res.ok && data.success;
+  document.getElementById('upload-result').innerHTML = `
+    <div class="alert ${isOk ? 'alert-success' : 'alert-error'}">
+      ${isOk ? '✅' : '❌'} ${data.message || data.error}
+      ${data.errors?.length ? `<br><small>${data.errors.join('<br>')}</small>` : ''}
+    </div>`;
+  if (isOk) loadStats();
+}
+
+function handleFileSelect(e) { if (e.target.files[0]) uploadFile(e.target.files[0]); }
+function handleDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag'); }
+function handleDragLeave() { document.getElementById('drop-zone').classList.remove('drag'); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag');
+  if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+}
+
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-slips').style.display     = tab === 'slips'     ? 'block' : 'none';
+  document.getElementById('tab-unmatched').style.display = tab === 'unmatched' ? 'block' : 'none';
+}
+
+// โหลดเมื่อเปิดหน้า
+loadStats();
+// Auto refresh ทุก 30 วินาที
+setInterval(loadStats, 30000);
+</script>
+</body>
+</html>

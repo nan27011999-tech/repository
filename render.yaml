@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: line-slip-bot
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: AMOUNT_TOLERANCE
+        value: "1.00"
+      - key: DATE_TOLERANCE_DAYS
+        value: "3"
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
